@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalamadja — Заполняемость</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0e0e0e;--s1:#161616;--s2:#1f1f1f;--border:#2a2a2a;
+  --text:#f0ede8;--muted:#666;--accent:#e8c84a;
+  --green:#4cbb8a;--red:#e05c5c;
+  --fh:'Syne',sans-serif;--fm:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;padding:32px 36px 48px;min-height:100vh;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px;}
+.brand{font-family:var(--fh);font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.brand em{font-style:normal;color:var(--accent);}
+.month-tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:99px;}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;animation:fadeUp .5s ease both;}
+.hero-main{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:32px 36px;position:relative;overflow:hidden;}
+.hero-main::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent);}
+.lbl{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;}
+.big-num{font-family:var(--fh);font-size:80px;font-weight:800;line-height:1;color:var(--accent);margin-bottom:8px;}
+.big-num sup{font-size:32px;vertical-align:super;color:var(--muted);}
+.sublbl{font-size:11px;color:var(--muted);}
+.bar-section{margin-top:28px;}
+.bar-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;}
+.bar-track{height:14px;background:var(--s2);border-radius:99px;position:relative;overflow:visible;}
+.bar-fill{height:100%;border-radius:99px;background:var(--accent);transition:width 1.2s cubic-bezier(.16,1,.3,1);position:relative;}
+.bar-fill::after{content:attr(data-pct);position:absolute;right:-2px;top:50%;transform:translateY(-50%) translateX(100%);font-size:11px;color:var(--accent);padding-left:8px;white-space:nowrap;}
+.goal-pin{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text);border-radius:99px;opacity:.4;}
+.goal-pin::before{content:attr(data-val);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:9px;color:var(--muted);letter-spacing:1px;white-space:nowrap;}
+.hero-right{display:flex;flex-direction:column;gap:16px;}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px 24px;flex:1;}
+.sc-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.sc-val{font-family:var(--fh);font-size:40px;font-weight:800;line-height:1;}
+.sc-sub{font-size:11px;color:var(--muted);margin-top:8px;}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:500;letter-spacing:.5px;margin-top:8px;}
+.tag.warn{background:rgba(224,92,92,.12);color:var(--red);}
+.tag.ok{background:rgba(76,187,138,.12);color:var(--green);}
+.tag.near{background:rgba(232,200,74,.12);color:var(--accent);}
+.panel{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:20px;}
+.panel-title{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
+.hist-row{display:grid;grid-template-columns:150px 1fr 70px 60px 90px;gap:12px;align-items:center;padding:12px 8px;border-bottom:1px solid var(--border);}
+.hist-row:last-child{border-bottom:none;}
+.hist-row.cur{background:rgba(232,200,74,.04);border-radius:8px;}
+.rmonth{font-size:12px;}
+.rmonth.cur{color:var(--accent);font-weight:500;}
+.rmonth.fut{color:var(--muted);}
+.mbar{height:6px;background:var(--s2);border-radius:99px;position:relative;overflow:visible;}
+.mbar-fill{height:100%;border-radius:99px;}
+.mbar-pin{position:absolute;top:-3px;bottom:-3px;width:1.5px;background:#333;border-radius:99px;}
+.rfact{text-align:right;font-size:13px;}
+.rgoal{text-align:right;font-size:12px;color:var(--muted);}
+.rdelta{text-align:right;}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;}
+.pill.pos{background:rgba(76,187,138,.1);color:var(--green);}
+.pill.neg{background:rgba(224,92,92,.1);color:var(--red);}
+.pill.none{color:var(--muted);font-size:11px;}
+.chart-wrap{height:200px;}
+.history-panel{animation:fadeUp .5s ease .15s both;}
+.chart-panel{animation:fadeUp .5s ease .25s both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<script>
+const ROWS=[
+  {month:"Ноябрь 2025", fact:46.2, goal:70},
+  {month:"Декабрь 2025",fact:52.2, goal:70},
+  {month:"Январь 2026", fact:46.4, goal:65},
+  {month:"Февраль 2026",fact:52.2, goal:65},
+  {month:"Март 2026",   fact:null, goal:70},
+  {month:"Апрель 2026", fact:null, goal:70},
+  {month:"Май 2026",    fact:null, goal:70},
+  {month:"Июнь 2026",   fact:null, goal:75},
+  {month:"Июль 2026",   fact:null, goal:75},
+];
+</script>
+
+<div class="header">
+  <div class="brand">Kalam<em>аджа</em></div>
+  <div class="month-tag" id="mtag"></div>
+</div>
+
+<div class="hero">
+  <div class="hero-main">
+    <div class="lbl">Факт заполняемости</div>
+    <div class="big-num" id="hfact"></div>
+    <div class="sublbl" id="hmonth"></div>
+    <div class="bar-section">
+      <div class="bar-meta">
+        <span>0%</span>
+        <span id="bgoal-lbl"></span>
+        <span>100%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bfill" style="width:0%" data-pct=""></div>
+        <div class="goal-pin" id="gpin" data-val=""></div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="stat-card">
+      <div class="sc-lbl">До цели осталось</div>
+      <div class="sc-val" id="sc-gap"></div>
+      <div class="sc-sub" id="sc-sub"></div>
+      <div id="sc-tag"></div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-lbl">Цель месяца</div>
+      <div class="sc-val" id="sc-goal"></div>
+      <div class="sc-sub">целевой показатель</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel history-panel">
+  <div class="panel-title">История по месяцам</div>
+  <div id="hist"></div>
+</div>
+
+<div class="panel chart-panel">
+  <div class="panel-title">Динамика факт vs цель</div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+</div>
+
+<script>
+const withFact=ROWS.filter(r=>r.fact!==null);
+const cur=withFact[withFact.length-1]||ROWS[0];
+const gap=cur.fact!==null?+(cur.goal-cur.fact).toFixed(1):null;
+const prog=cur.fact!==null?Math.round(cur.fact/cur.goal*100):null;
+
+document.getElementById('mtag').textContent=cur.month;
+document.getElementById('hfact').innerHTML=cur.fact+'<sup>%</sup>';
+document.getElementById('hmonth').textContent=cur.month;
+document.getElementById('bgoal-lbl').textContent='Цель: '+cur.goal+'%';
+document.getElementById('sc-goal').textContent=cur.goal+'%';
+
+const gapEl=document.getElementById('sc-gap');
+const tagEl=document.getElementById('sc-tag');
+const subEl=document.getElementById('sc-sub');
+if(gap!==null){
+  if(gap<=0){
+    gapEl.textContent='0%';gapEl.style.color='var(--green)';
+    tagEl.innerHTML='<span class="tag ok">✓ Цель выполнена!</span>';
+    subEl.textContent='Перевыполнение: +'+Math.abs(gap)+'%';
+  } else if(gap<=10){
+    gapEl.textContent=gap+'%';gapEl.style.color='var(--accent)';
+    tagEl.innerHTML='<span class="tag near">⬆ Почти у цели</span>';
+    subEl.textContent='до целевого показателя';
+  } else {
+    gapEl.textContent=gap+'%';gapEl.style.color='var(--red)';
+    tagEl.innerHTML='<span class="tag warn">↑ Нужен рост</span>';
+    subEl.textContent='до целевого показателя';
+  }
+}
+
+setTimeout(()=>{
+  document.getElementById('bfill').style.width=cur.fact+'%';
+  document.getElementById('bfill').dataset.pct=prog+'%';
+  document.getElementById('gpin').style.left=cur.goal+'%';
+  document.getElementById('gpin').dataset.val='Цель '+cur.goal+'%';
+},100);
+
+// HISTORY
+const histEl=document.getElementById('hist');
+ROWS.forEach(row=>{
+  const isCur=row.month===cur.month;
+  const has=row.fact!==null;
+  const rg=has?+(row.goal-row.fact).toFixed(1):null;
+  const bw=has?Math.min(row.fact,100):0;
+  const bc=!has?'var(--border)':rg<=0?'var(--green)':rg<=10?'var(--accent)':'var(--red)';
+  let pill=!has?'<span class="pill none">нет данных</span>'
+    :rg<=0?'<span class="pill pos">✓ +'+Math.abs(rg)+'%</span>'
+    :'<span class="pill neg">−'+rg+'%</span>';
+  histEl.innerHTML+=`
+    <div class="hist-row ${isCur?'cur':''}">
+      <div class="rmonth ${isCur?'cur':''} ${!has?'fut':''}">${row.month}</div>
+      <div class="mbar">
+        <div class="mbar-fill" style="width:${bw}%;background:${bc}"></div>
+        <div class="mbar-pin" style="left:${row.goal}%"></div>
+      </div>
+      <div class="rfact">${has?row.fact+'%':'—'}</div>
+      <div class="rgoal">${row.goal}%</div>
+      <div class="rdelta">${pill}</div>
+    </div>`;
+});
+
+// CHART
+const past=ROWS.filter(r=>r.fact!==null);
+new Chart(document.getElementById('chart'),{
+  type:'line',
+  data:{
+    labels:past.map(r=>r.month.replace(' 20'," '")),
+    datasets:[
+      {label:'Факт %',data:past.map(r=>r.fact),borderColor:'#e8c84a',backgroundColor:'rgba(232,200,74,.08)',borderWidth:2.5,pointBackgroundColor:'#e8c84a',pointRadius:5,tension:.35,fill:true},
+      {label:'Цель %',data:past.map(r=>r.goal),borderColor:'#444',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{labels:{color:'#666',font:{family:'JetBrains Mono',size:10},boxWidth:10,padding:20}},
+      tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}%`}}
+    },
+    scales:{
+      x:{grid:{color:'#222'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:10}}},
+      y:{min:30,max:100,grid:{color:'#222'},ticks:{color:'#555',font:{family:'JetBrains Mono',size:10},callback:v=>v+'%'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
